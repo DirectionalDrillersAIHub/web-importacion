@@ -7,8 +7,9 @@ let tokenCache = null;
 let tokenExp   = 0;
 
 async function getToken() {
-  if (tokenCache && Date.now() < tokenExp) return tokenCache;
-  const res = await fetch(`${ML_BASE}/oauth/token`, {
+  async function getToken() {
+  return 'APP_USR-3657697217255500-041311-39e681d3a423bc0a9f453f02028a17cc-95829937';
+}
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `grant_type=client_credentials&client_id=${ML_APP_ID}&client_secret=${ML_SECRET}`
