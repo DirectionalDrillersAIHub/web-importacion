@@ -654,31 +654,32 @@ async function buscarML(){
   try {
     var url = RAPID_BASE + '/listings_for_search?query=' + encodeURIComponent(currentQ) + '&site_id=' + ML_SITE + '&offset=' + currentOffset + '&limit=' + LIMIT;
     var res = await fetch(url, {
+      method: 'GET',
       headers: {
         'x-rapidapi-key':  RAPID_KEY,
-        'x-rapidapi-host': RAPID_HOST,
-        'Content-Type':    'application/json'
+        'x-rapidapi-host': RAPID_HOST
       }
     });
     if(!res.ok) throw new Error('RapidAPI status ' + res.status);
     var data = await res.json();
 
-    // RapidAPI devuelve array directo o objeto con results
-    var items = Array.isArray(data) ? data : (data.results || data.listings || []);
-    currentTotal = data.total || items.length * 3 || 0;
+    var items = data.data || [];
+    currentTotal = parseInt((data.search_results || '0').replace(/\D/g,'')) || items.length * 5;
 
     resultados = items.map(function(p){
       return {
-        id:           p.id || p.listing_id,
+        id:           p.id,
         titulo:       p.title,
-        precio:       p.price || p.original_price,
-        moneda:       p.currency_id || 'ARS',
-        imagen:       (p.thumbnail || p.image || '').replace('http://','https://').replace('-I.jpg','-O.jpg'),
-        link:         p.permalink || p.url,
-        condicion:    p.condition,
-        vendidos:     p.sold_quantity,
-        envio_gratis: p.shipping?.free_shipping || p.free_shipping,
-        fuente:       'ml'
+        precio:       parseFloat((p.price||'0').replace(/\./g,'').replace(',','.')),
+        moneda:       'ARS',
+        imagen:       null,
+        link:         p.url,
+        condicion:    'new',
+        vendidos:     null,
+        envio_gratis: p.shipping && p.shipping.toLowerCase().includes('gratis'),
+        fuente:       'ml',
+        vendedor:     p.seller || null,
+        precio_tachado: p.strikethrough_price || null
       };
     });
     resultadosTodo = resultados.slice();
@@ -686,7 +687,7 @@ async function buscarML(){
   } catch(err){
     console.error('RapidAPI ML error:', err);
     simularResultadosML(currentQ);
-    toast('⚠️ Error conectando — mostrando demo', 'error');
+    toast('⚠️ Error: ' + err.message, 'error');
   }
 }
 
@@ -808,19 +809,21 @@ function renderResultados(){
       : '$' + p.precio.toLocaleString('es-AR');
 
     var imgHtml = p.imagen
-      ? '<img src="'+p.imagen+'" alt="" onerror="this.src=\'\';this.parentNode.innerHTML=\'📦\'">'
+      ? '<img src="'+p.imagen+'" alt="" onerror="this.parentNode.innerHTML=\'📦\'">'
       : '<span style="font-size:36px;">📦</span>';
+
+    var precioTachado = p.precio_tachado ? '<div style="font-size:11px;color:var(--muted);text-decoration:line-through;">$'+parseFloat(p.precio_tachado).toLocaleString('es-AR')+'</div>' : '';
 
     card.innerHTML =
       '<div class="prod-card-img">'+imgHtml+'</div>'+
       '<div class="prod-card-body">'+
-        '<div class="prod-card-fuente fuente-'+p.fuente+'">'+(p.fuente==='ml'?'MercadoLibre':'AliExpress')+'</div>'+
+        '<div class="prod-card-fuente fuente-'+p.fuente+'">'+(p.fuente==='ml'?'MercadoLibre AR':'AliExpress')+'</div>'+
         '<div class="prod-card-nombre">'+p.titulo+'</div>'+
-        '<div class="prod-card-precio '+p.fuente+'">'+precioFmt+'</div>'+
+        precioTachado+
+        '<div class="prod-card-precio '+p.fuente+'">$'+Math.round(p.precio).toLocaleString('es-AR')+'</div>'+
         '<div class="prod-card-meta">'+
           (p.envio_gratis ? '<span class="meta-tag verde">Envío gratis</span>' : '')+
-          (p.vendidos ? '<span class="meta-tag">'+p.vendidos+' vendidos</span>' : '')+
-          (p.condicion === 'used' ? '<span class="meta-tag">Usado</span>' : '')+
+          (p.vendedor ? '<span class="meta-tag">'+p.vendedor+'</span>' : '')+
         '</div>'+
       '</div>'+
       '<button class="prod-card-add'+(yaImportado?' added':'')+'" title="'+(yaImportado?'Ya agregado':'Agregar')+'" '+
