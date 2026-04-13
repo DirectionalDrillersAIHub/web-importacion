@@ -567,10 +567,15 @@ body{ font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); 
 <script>
 /* ===== CONFIG ===== */
 // En producción apunta a tu Vercel. En local usa el proxy.
-var API_URL = 'https://api.mercadolibre.com';
-var ML_TOKEN = 'APP_USR-3657697217255500-041311-39e681d3a423bc0a9f453f02028a17cc-95829937';
-var ML_SITE  = 'MLA';
+var API_URL = '/api/ml';
 
+// Detectar si estamos en local (archivo:// o localhost)
+if(window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'){
+  // Modo demo local — usamos datos simulados
+  API_URL = null;
+}
+
+/* ===== ESTADO ===== */
 var fuenteActual   = 'ml';
 var resultados     = [];
 var resultadosTodo = [];
@@ -650,32 +655,28 @@ async function ejecutarBusqueda(){
 }
 
 async function buscarML(){
+  // Si no hay API (local), usar datos demo
+  if(!API_URL){
+    simularResultadosML(currentQ);
+    return;
+  }
+
   try {
-    var url = API_URL + '/sites/' + ML_SITE + '/search?q=' + encodeURIComponent(currentQ) + '&limit=' + LIMIT + '&offset=' + currentOffset;
-    var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + ML_TOKEN } });
-    if(!res.ok) throw new Error('ML status ' + res.status);
+    var url = API_URL + '?action=search&q=' + encodeURIComponent(currentQ) + '&limit=' + LIMIT + '&offset=' + currentOffset;
+    var res = await fetch(url);
+    if(!res.ok) throw new Error('Error ' + res.status);
     var data = await res.json();
-    currentTotal = data.paging?.total || 0;
-    resultados = (data.results || []).map(function(p){
-      return {
-        id:           p.id,
-        titulo:       p.title,
-        precio:       p.price,
-        moneda:       p.currency_id,
-        imagen:       (p.thumbnail||'').replace('http://','https://').replace('-I.jpg','-O.jpg'),
-        link:         p.permalink,
-        condicion:    p.condition,
-        vendidos:     p.sold_quantity,
-        envio_gratis: p.shipping?.free_shipping,
-        fuente:       'ml'
-      };
-    });
+
+    currentTotal = data.total || 0;
+    resultados = data.productos || [];
     resultadosTodo = resultados.slice();
     renderResultados();
+
   } catch(err){
-    console.error('ML error:', err);
+    console.error(err);
+    // Fallback a demo si la API falla
     simularResultadosML(currentQ);
-    toast('⚠️ Error conectando con ML — mostrando demo', 'error');
+    toast('⚠️ API no disponible — mostrando datos de ejemplo', 'error');
   }
 }
 
@@ -1094,10 +1095,10 @@ async function verDetalle(p){
   document.getElementById('modalOv').classList.add('on');
 
   // Cargar detalle completo si tenemos API
-  if(p.fuente === 'ml' && !p._demo){
+  if(API_URL && p.fuente === 'ml' && !p._demo){
     try {
-      var ir = await fetch(API_URL + '/items/' + p.id, { headers: { 'Authorization': 'Bearer ' + ML_TOKEN } });
-      var det = await ir.json();
+      var res = await fetch(API_URL + '?action=detail&id=' + p.id);
+      var det = await res.json();
 
       if(det.imagenes && det.imagenes.length){
         var thumbs = det.imagenes.slice(0, 6).map(function(url, i){
