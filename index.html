@@ -656,7 +656,8 @@ async function buscarML(){
     var res = await fetch(url, {
       headers: {
         'x-rapidapi-key':  RAPID_KEY,
-        'x-rapidapi-host': RAPID_HOST
+        'x-rapidapi-host': RAPID_HOST,
+        'Content-Type':    'application/json'
       }
     });
     if(!res.ok) throw new Error('RapidAPI status ' + res.status);
