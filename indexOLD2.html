@@ -567,10 +567,9 @@ body{ font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); 
 <script>
 /* ===== CONFIG ===== */
 // En producción apunta a tu Vercel. En local usa el proxy.
-var RAPID_KEY  = '04e288c6e6mshcc1dc56eb2ee75ap10a517jsn79c314d71bf5';
-var RAPID_HOST = 'mercado-libre7.p.rapidapi.com';
-var RAPID_BASE = 'https://mercado-libre7.p.rapidapi.com';
-var ML_SITE    = 'MLA';
+var API_URL = 'https://api.mercadolibre.com';
+var ML_TOKEN = 'APP_USR-3657697217255500-041311-39e681d3a423bc0a9f453f02028a17cc-95829937';
+var ML_SITE  = 'MLA';
 
 var fuenteActual   = 'ml';
 var resultados     = [];
@@ -652,40 +651,31 @@ async function ejecutarBusqueda(){
 
 async function buscarML(){
   try {
-    var url = RAPID_BASE + '/listings_for_search?query=' + encodeURIComponent(currentQ) + '&site_id=' + ML_SITE + '&offset=' + currentOffset + '&limit=' + LIMIT;
-    var res = await fetch(url, {
-      headers: {
-        'x-rapidapi-key':  RAPID_KEY,
-        'x-rapidapi-host': RAPID_HOST
-      }
-    });
-    if(!res.ok) throw new Error('RapidAPI status ' + res.status);
+    var url = API_URL + '/sites/' + ML_SITE + '/search?q=' + encodeURIComponent(currentQ) + '&limit=' + LIMIT + '&offset=' + currentOffset;
+    var res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + ML_TOKEN } });
+    if(!res.ok) throw new Error('ML status ' + res.status);
     var data = await res.json();
-
-    // RapidAPI devuelve array directo o objeto con results
-    var items = Array.isArray(data) ? data : (data.results || data.listings || []);
-    currentTotal = data.total || items.length * 3 || 0;
-
-    resultados = items.map(function(p){
+    currentTotal = data.paging?.total || 0;
+    resultados = (data.results || []).map(function(p){
       return {
-        id:           p.id || p.listing_id,
+        id:           p.id,
         titulo:       p.title,
-        precio:       p.price || p.original_price,
-        moneda:       p.currency_id || 'ARS',
-        imagen:       (p.thumbnail || p.image || '').replace('http://','https://').replace('-I.jpg','-O.jpg'),
-        link:         p.permalink || p.url,
+        precio:       p.price,
+        moneda:       p.currency_id,
+        imagen:       (p.thumbnail||'').replace('http://','https://').replace('-I.jpg','-O.jpg'),
+        link:         p.permalink,
         condicion:    p.condition,
         vendidos:     p.sold_quantity,
-        envio_gratis: p.shipping?.free_shipping || p.free_shipping,
+        envio_gratis: p.shipping?.free_shipping,
         fuente:       'ml'
       };
     });
     resultadosTodo = resultados.slice();
     renderResultados();
   } catch(err){
-    console.error('RapidAPI ML error:', err);
+    console.error('ML error:', err);
     simularResultadosML(currentQ);
-    toast('⚠️ Error conectando — mostrando demo', 'error');
+    toast('⚠️ Error conectando con ML — mostrando demo', 'error');
   }
 }
 
@@ -1106,9 +1096,7 @@ async function verDetalle(p){
   // Cargar detalle completo si tenemos API
   if(p.fuente === 'ml' && !p._demo){
     try {
-      var ir = await fetch(RAPID_BASE + '/listing_data?listing_url=' + encodeURIComponent(p.link), {
-        headers: { 'x-rapidapi-key': RAPID_KEY, 'x-rapidapi-host': RAPID_HOST }
-      });
+      var ir = await fetch(API_URL + '/items/' + p.id, { headers: { 'Authorization': 'Bearer ' + ML_TOKEN } });
       var det = await ir.json();
 
       if(det.imagenes && det.imagenes.length){
