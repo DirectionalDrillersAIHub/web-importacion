@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "functions": {
+    "api/ml.js": {
+      "runtime": "edge"
+    }
+  },
+  "routes": [
+    {
+      "src": "/api/ml",
+      "dest": "/api/ml.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ]
+}

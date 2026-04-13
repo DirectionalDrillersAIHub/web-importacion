@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Importador de Productos — Panel Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #09090D;
+  --bg2:     #0F0F16;
+  --bg3:     #16161F;
+  --border:  rgba(255,255,255,0.07);
+  --org:     #FF4500;
+  --org2:    #FF6B35;
+  --gold:    #E8B84B;
+  --verde:   #00C97A;
+  --rojo:    #FF4444;
+  --azul:    #3B82F6;
+  --text:    #F0EDE8;
+  --muted:   rgba(240,237,232,0.4);
+  --ml:      #FFE600;
+  --ali:     #FF6A00;
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; }
+body{ font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+
+/* ===== HEADER ===== */
+.header{
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:16px 32px; display:flex; align-items:center; justify-content:space-between; gap:20px;
+  position:sticky; top:0; z-index:50;
+}
+.header-left{ display:flex; align-items:center; gap:16px; }
+.header-title{ font-size:16px; font-weight:700; }
+.header-sub{ font-size:12px; color:var(--muted); }
+.header-badge{
+  font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  padding:4px 12px; border-radius:50px;
+  background:rgba(255,69,0,0.1); border:1px solid rgba(255,69,0,0.2); color:var(--org);
+}
+.importados-count{
+  font-size:13px; font-weight:600; color:var(--verde);
+  background:rgba(0,201,122,0.08); border:1px solid rgba(0,201,122,0.15);
+  padding:6px 14px; border-radius:8px;
+}
+
+/* ===== FUENTE TABS ===== */
+.source-tabs{
+  display:flex; gap:0;
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:0 32px;
+}
+.source-tab{
+  padding:14px 28px; font-size:14px; font-weight:700;
+  color:var(--muted); cursor:pointer; border:none; background:none;
+  border-bottom:3px solid transparent; transition:all 0.2s;
+  display:flex; align-items:center; gap:10px;
+}
+.source-tab:hover{ color:var(--text); }
+.source-tab.active.ml{ color:var(--ml); border-bottom-color:var(--ml); }
+.source-tab.active.ali{ color:var(--ali); border-bottom-color:var(--ali); }
+
+.source-dot{ width:8px; height:8px; border-radius:50%; }
+.dot-ml{ background:var(--ml); }
+.dot-ali{ background:var(--ali); }
+
+/* ===== BUSCADOR ===== */
+.search-area{
+  padding:24px 32px; background:var(--bg2);
+  border-bottom:1px solid var(--border);
+}
+
+.search-bar{
+  display:flex; gap:10px; margin-bottom:14px;
+}
+
+.search-input{
+  flex:1; background:var(--bg3); border:1px solid var(--border);
+  border-radius:10px; padding:13px 18px; color:var(--text);
+  font-family:'Outfit',sans-serif; font-size:15px; outline:none;
+  transition:border-color 0.2s;
+}
+.search-input:focus{ border-color:rgba(255,69,0,0.4); }
+.search-input::placeholder{ color:rgba(255,255,255,0.2); }
+
+.btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 20px; border-radius:10px; border:none;
+  font-family:'Outfit',sans-serif; font-size:13px; font-weight:600;
+  cursor:pointer; transition:all 0.2s; white-space:nowrap;
+}
+.btn-search-ml{ background:var(--ml); color:#111; font-weight:700; }
+.btn-search-ml:hover{ opacity:0.88; }
+.btn-search-ali{ background:var(--ali); color:white; font-weight:700; }
+.btn-search-ali:hover{ opacity:0.88; }
+.btn-primary{ background:var(--org); color:white; }
+.btn-primary:hover{ background:var(--org2); }
+.btn-success{ background:rgba(0,201,122,0.1); color:var(--verde); border:1px solid rgba(0,201,122,0.2); }
+.btn-success:hover{ background:rgba(0,201,122,0.18); }
+.btn-secondary{ background:rgba(255,255,255,0.06); color:var(--text); border:1px solid var(--border); }
+.btn-secondary:hover{ background:rgba(255,255,255,0.1); }
+.btn-gold{ background:rgba(232,184,75,0.1); color:var(--gold); border:1px solid rgba(232,184,75,0.2); }
+.btn-gold:hover{ background:rgba(232,184,75,0.18); }
+.btn-sm{ padding:6px 12px; font-size:12px; }
+.btn-lg{ padding:14px 28px; font-size:15px; }
+.btn-icon{ width:36px; height:36px; padding:0; border-radius:8px; justify-content:center; }
+
+.search-chips{ display:flex; gap:8px; flex-wrap:wrap; }
+.chip{
+  background:rgba(255,255,255,0.05); border:1px solid var(--border);
+  color:var(--muted); padding:6px 14px; border-radius:50px;
+  font-size:12px; font-weight:500; cursor:pointer; transition:all 0.2s;
+}
+.chip:hover{ background:rgba(255,69,0,0.08); border-color:rgba(255,69,0,0.25); color:var(--org2); }
+
+/* ===== MAIN LAYOUT ===== */
+.main{ display:grid; grid-template-columns:1fr 380px; min-height:calc(100vh - 180px); }
+
+/* ===== RESULTADOS ===== */
+.resultados{ padding:24px 32px; border-right:1px solid var(--border); overflow-y:auto; }
+
+.res-header{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;
+}
+.res-title{ font-size:13px; font-weight:700; }
+.res-count{ font-size:12px; color:var(--muted); }
+
+.res-controls{ display:flex; gap:8px; }
+.res-select{
+  background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+  padding:7px 12px; color:var(--text); font-family:'Outfit',sans-serif; font-size:12px; outline:none;
+}
+
+/* Grid de resultados */
+.productos-grid{
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:12px;
+}
+
+.prod-card{
+  background:var(--bg2); border:1px solid var(--border); border-radius:12px;
+  overflow:hidden; cursor:pointer; transition:all 0.25s; position:relative;
+}
+.prod-card:hover{ border-color:rgba(255,69,0,0.3); transform:translateY(-2px); }
+.prod-card.seleccionado{ border-color:var(--verde); box-shadow:0 0 0 2px rgba(0,201,122,0.2); }
+
+.prod-card-img{
+  height:140px; background:white;
+  display:flex; align-items:center; justify-content:center; overflow:hidden; padding:8px;
+}
+.prod-card-img img{ max-width:100%; max-height:124px; object-fit:contain; }
+
+.prod-card-body{ padding:12px; }
+.prod-card-fuente{
+  font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  margin-bottom:4px;
+}
+.fuente-ml{ color:var(--ml); }
+.fuente-ali{ color:var(--ali); }
+
+.prod-card-nombre{
+  font-size:12px; font-weight:600; line-height:1.35; margin-bottom:6px;
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.prod-card-precio{ font-size:16px; font-weight:700; margin-bottom:4px; }
+.prod-card-precio.ml{ color:var(--ml); }
+.prod-card-precio.ali{ color:var(--ali); }
+
+.prod-card-meta{ display:flex; gap:6px; flex-wrap:wrap; }
+.meta-tag{
+  font-size:10px; padding:2px 7px; border-radius:4px;
+  background:rgba(255,255,255,0.06); color:var(--muted);
+}
+.meta-tag.verde{ background:rgba(0,201,122,0.1); color:var(--verde); }
+
+.prod-card-add{
+  position:absolute; top:8px; right:8px; width:28px; height:28px;
+  background:rgba(255,255,255,0.1); border:none; border-radius:6px;
+  color:white; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(4px); transition:background 0.2s;
+}
+.prod-card-add:hover{ background:var(--verde); }
+.prod-card-add.added{ background:var(--verde); }
+
+/* Paginación */
+.paginacion{
+  display:flex; align-items:center; justify-content:center; gap:10px; margin-top:24px;
+}
+
+/* Estado vacío / cargando */
+.estado-vacio{
+  text-align:center; padding:80px 32px; color:var(--muted);
+}
+.estado-vacio .icon{ font-size:48px; margin-bottom:16px; opacity:0.4; }
+.estado-vacio h3{ font-size:16px; font-weight:600; color:var(--text); margin-bottom:8px; }
+.estado-vacio p{ font-size:13px; line-height:1.7; max-width:300px; margin:0 auto; }
+
+.spinner{
+  width:32px; height:32px; border:3px solid var(--border);
+  border-top-color:var(--org); border-radius:50%;
+  animation:spin 0.8s linear infinite; margin:0 auto 16px;
+}
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* ===== PANEL LATERAL — IMPORTAR ===== */
+.panel-importar{
+  background:var(--bg2); padding:24px; overflow-y:auto;
+  display:flex; flex-direction:column; gap:16px;
+}
+
+.panel-section{ margin-bottom:0; }
+.panel-label{
+  font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase;
+  color:var(--muted); margin-bottom:10px; display:block;
+}
+
+/* Producto seleccionado preview */
+.prod-preview{
+  background:var(--bg3); border:1px solid var(--border); border-radius:10px; overflow:hidden;
+  display:none;
+}
+.prod-preview.visible{ display:block; }
+
+.pp-img{
+  background:white; height:160px;
+  display:flex; align-items:center; justify-content:center; padding:12px;
+}
+.pp-img img{ max-width:100%; max-height:136px; object-fit:contain; }
+
+.pp-body{ padding:14px; }
+.pp-fuente{ font-size:9px; font-weight:700; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+.pp-nombre{ font-size:13px; font-weight:700; line-height:1.4; margin-bottom:8px; }
+.pp-precio-orig{ font-size:12px; color:var(--muted); margin-bottom:4px; }
+.pp-precio-orig span{ font-weight:600; color:var(--text); }
+
+/* Formulario de importación */
+.import-form{ display:flex; flex-direction:column; gap:12px; }
+
+.fg{ display:flex; flex-direction:column; gap:5px; }
+.fg label{ font-size:11px; font-weight:600; letter-spacing:1px; text-transform:uppercase; color:var(--muted); }
+.fg input, .fg select, .fg textarea{
+  background:var(--bg3); border:1px solid var(--border); border-radius:8px;
+  padding:10px 13px; color:var(--text); font-family:'Outfit',sans-serif; font-size:13px; outline:none;
+  transition:border-color 0.2s;
+}
+.fg input:focus, .fg select:focus, .fg textarea:focus{ border-color:rgba(255,69,0,0.4); }
+.fg input::placeholder{ color:rgba(255,255,255,0.2); }
+.fg-hint{ font-size:11px; color:var(--muted); }
+.fg-row{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+/* Precio calculado */
+.precio-calculado{
+  background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:14px;
+}
+.pc-row{ display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-bottom:6px; }
+.pc-row.total{ color:var(--text); font-weight:700; font-size:16px; padding-top:8px; margin-top:4px; border-top:1px solid var(--border); margin-bottom:0; }
+.pc-row span:last-child{ color:var(--text); }
+.pc-row.total span:last-child{ color:var(--verde); font-size:18px; }
+
+/* Lista de importados */
+.importados-lista{ display:flex; flex-direction:column; gap:8px; }
+.importado-item{
+  background:var(--bg3); border:1px solid rgba(0,201,122,0.15); border-radius:8px;
+  padding:10px 12px; display:flex; align-items:center; gap:10px;
+}
+.ii-img{ width:36px; height:36px; background:white; border-radius:4px; object-fit:contain; flex-shrink:0; }
+.ii-info{ flex:1; min-width:0; }
+.ii-nombre{ font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ii-precio{ font-size:12px; color:var(--verde); font-weight:700; }
+.ii-del{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px; transition:color 0.2s; flex-shrink:0; }
+.ii-del:hover{ color:var(--rojo); }
+
+/* ===== MODAL DETALLE ===== */
+.modal-ov{
+  position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:200;
+  display:none; align-items:center; justify-content:center; padding:20px;
+  backdrop-filter:blur(8px);
+}
+.modal-ov.on{ display:flex; }
+
+.modal{
+  background:var(--bg2); border:1px solid var(--border); border-radius:14px;
+  max-width:700px; width:100%; max-height:90vh; overflow-y:auto;
+}
+
+.modal-head{
+  padding:20px 24px; border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+}
+.modal-head h2{ font-size:15px; font-weight:700; }
+.btn-close{ width:28px; height:28px; border-radius:6px; background:rgba(255,255,255,0.06); border:none; color:var(--text); cursor:pointer; font-size:14px; }
+
+.modal-body{ padding:24px; }
+
+.modal-imgs{
+  display:flex; gap:8px; overflow-x:auto; margin-bottom:20px; padding-bottom:4px;
+}
+.modal-img-thumb{
+  width:72px; height:72px; background:white; border-radius:6px; padding:4px;
+  flex-shrink:0; cursor:pointer; border:2px solid transparent; transition:border-color 0.2s;
+  object-fit:contain;
+}
+.modal-img-thumb.active{ border-color:var(--org); }
+
+.modal-img-main{
+  width:100%; height:260px; background:white; border-radius:10px;
+  display:flex; align-items:center; justify-content:center; margin-bottom:16px; padding:16px;
+}
+.modal-img-main img{ max-width:100%; max-height:228px; object-fit:contain; }
+
+.modal-nombre{ font-size:18px; font-weight:700; margin-bottom:8px; line-height:1.3; }
+.modal-precio{ font-size:28px; font-weight:900; margin-bottom:4px; }
+.modal-meta{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+
+.modal-atributos{ margin-bottom:16px; }
+.attr-grid{ display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-top:8px; }
+.attr-item{
+  background:var(--bg3); border-radius:6px; padding:8px 10px;
+  display:flex; justify-content:space-between; font-size:12px;
+}
+.attr-nombre{ color:var(--muted); }
+.attr-valor{ font-weight:600; }
+
+.modal-desc{ font-size:13px; color:var(--muted); line-height:1.7; max-height:100px; overflow:hidden; }
+.modal-desc.expanded{ max-height:none; }
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed; bottom:24px; right:24px;
+  background:var(--bg2); border:1px solid var(--border);
+  color:var(--text); padding:12px 20px; border-radius:10px;
+  font-size:13px; font-weight:500; opacity:0; transition:all 0.3s; z-index:300;
+  transform:translateY(10px); pointer-events:none;
+  box-shadow:0 8px 32px rgba(0,0,0,0.4);
+}
+.toast.show{ opacity:1; transform:translateY(0); }
+.toast.success{ border-color:rgba(0,201,122,0.3); }
+.toast.error{ border-color:rgba(255,68,68,0.3); }
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:900px){
+  .main{ grid-template-columns:1fr; }
+  .panel-importar{ border-top:1px solid var(--border); }
+  .productos-grid{ grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); }
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- MODAL DETALLE -->
+<div class="modal-ov" id="modalOv">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="modalFuente">Detalle del producto</h2>
+      <button class="btn-close" onclick="cerrarModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-imgs" id="modalImgs"></div>
+      <div class="modal-img-main"><img id="modalImgMain" src="" alt=""></div>
+      <div class="modal-nombre" id="modalNombre"></div>
+      <div class="modal-precio" id="modalPrecio"></div>
+      <div class="modal-meta" id="modalMeta"></div>
+      <div class="modal-atributos" id="modalAtributos"></div>
+      <div class="modal-desc" id="modalDesc"></div>
+      <button style="background:none;border:none;color:var(--org);cursor:pointer;font-size:12px;margin-top:4px;" onclick="toggleDesc()">Ver más</button>
+    </div>
+    <div style="padding:16px 24px 20px;border-top:1px solid var(--border);display:flex;gap:10px;">
+      <button class="btn btn-success btn-lg" onclick="seleccionarDesdeModal()">✅ Seleccionar para importar</button>
+      <button class="btn btn-secondary" onclick="cerrarModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="header-title">🔍 Importador de Productos</div>
+      <div class="header-sub">Buscá en MercadoLibre · Seleccioná · Importá a tu tienda</div>
+    </div>
+    <div class="header-badge">HERRAMIENTA INTERNA</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="importados-count" id="importadosCount">0 productos seleccionados</div>
+    <button class="btn btn-primary" onclick="exportarAlPanel()">⬇ Exportar al panel admin</button>
+    <a href="panel_admin.html" class="btn btn-secondary">← Volver al panel</a>
+  </div>
+</div>
+
+<!-- FUENTE TABS -->
+<div class="source-tabs">
+  <button class="source-tab active ml" id="tab-ml" onclick="cambiarFuente('ml')">
+    <div class="source-dot dot-ml"></div>
+    MercadoLibre Argentina
+  </button>
+  <button class="source-tab ali" id="tab-ali" onclick="cambiarFuente('ali')">
+    <div class="source-dot dot-ali"></div>
+    AliExpress (Importación)
+  </button>
+</div>
+
+<!-- BUSCADOR -->
+<div class="search-area">
+  <div class="search-bar">
+    <input class="search-input" type="text" id="searchInput"
+      placeholder="Buscá cualquier producto... Ej: taladro percutor, cable eléctrico, pintura látex"
+      autocomplete="off">
+    <button class="btn btn-search-ml" id="btnBuscar" onclick="buscar()">🔍 Buscar en ML</button>
+  </div>
+  <div class="search-chips" id="searchChips">
+    <span class="chip" onclick="buscarRapido('taladro percutor')">Taladros</span>
+    <span class="chip" onclick="buscarRapido('amoladora angular')">Amoladoras</span>
+    <span class="chip" onclick="buscarRapido('martillo carpintero')">Martillos</span>
+    <span class="chip" onclick="buscarRapido('cable eléctrico duplex')">Cables eléctricos</span>
+    <span class="chip" onclick="buscarRapido('pintura látex interior')">Pinturas</span>
+    <span class="chip" onclick="buscarRapido('caño PVC')">Caños PVC</span>
+    <span class="chip" onclick="buscarRapido('candado seguridad')">Candados</span>
+    <span class="chip" onclick="buscarRapido('escalera aluminio')">Escaleras</span>
+    <span class="chip" onclick="buscarRapido('llave combinada')">Llaves</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- RESULTADOS -->
+  <div class="resultados">
+    <div class="res-header">
+      <div>
+        <div class="res-title" id="resTitle">Resultados</div>
+        <div class="res-count" id="resCount">Buscá un producto para ver resultados</div>
+      </div>
+      <div class="res-controls">
+        <select class="res-select" id="ordenSelect" onchange="reordenar()">
+          <option value="relevancia">Relevancia</option>
+          <option value="precio_asc">Precio: menor a mayor</option>
+          <option value="precio_desc">Precio: mayor a menor</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="resultadosContainer">
+      <div class="estado-vacio">
+        <div class="icon">🔍</div>
+        <h3>Listo para buscar</h3>
+        <p>Escribí el nombre de un producto y buscalo en MercadoLibre. Los resultados aparecen acá con foto, precio y datos reales.</p>
+      </div>
+    </div>
+
+    <div class="paginacion" id="paginacion" style="display:none;">
+      <button class="btn btn-secondary btn-sm" id="btnPrev" onclick="paginar(-1)">← Anterior</button>
+      <span id="pagInfo" style="font-size:13px;color:var(--muted);"></span>
+      <button class="btn btn-secondary btn-sm" id="btnNext" onclick="paginar(1)">Siguiente →</button>
+    </div>
+  </div>
+
+  <!-- PANEL IMPORTAR -->
+  <div class="panel-importar">
+
+    <!-- Preview producto seleccionado -->
+    <div>
+      <span class="panel-label">Producto seleccionado</span>
+      <div class="prod-preview" id="prodPreview">
+        <div class="pp-img"><img id="ppImg" src="" alt=""></div>
+        <div class="pp-body">
+          <div class="pp-fuente" id="ppFuente"></div>
+          <div class="pp-nombre" id="ppNombre"></div>
+          <div class="pp-precio-orig">Precio original: <span id="ppPrecioOrig">—</span></div>
+        </div>
+      </div>
+      <div id="sinSeleccion" style="background:var(--bg3);border:1px dashed var(--border);border-radius:10px;padding:28px;text-align:center;color:var(--muted);font-size:13px;">
+        Hacé click en un producto para seleccionarlo
+      </div>
+    </div>
+
+    <!-- Formulario de importación -->
+    <div id="formImportar" style="display:none;">
+      <span class="panel-label">Configurar precio para tu tienda</span>
+      <div class="import-form">
+
+        <div class="fg">
+          <label>Nombre en tu tienda</label>
+          <input type="text" id="iNombre" placeholder="Nombre que verá el cliente">
+        </div>
+
+        <div class="fg">
+          <label>Categoría</label>
+          <select id="iCat">
+            <option value="">Seleccioná...</option>
+            <option>Herramientas</option>
+            <option>Herramientas eléctricas</option>
+            <option>Electricidad</option>
+            <option>Plomería</option>
+            <option>Pintura</option>
+            <option>Fijaciones</option>
+            <option>Seguridad</option>
+            <option>Construcción</option>
+            <option>Otros</option>
+          </select>
+        </div>
+
+        <div class="fg-row">
+          <div class="fg">
+            <label>% Comisión</label>
+            <input type="number" id="iComision" value="10" min="0" max="100" step="0.5" oninput="calcPrecio()">
+          </div>
+          <div class="fg">
+            <label>Envío ($)</label>
+            <input type="number" id="iEnvio" value="0" min="0" step="100" oninput="calcPrecio()">
+          </div>
+        </div>
+
+        <div class="fg-row">
+          <div class="fg">
+            <label>Peso (kg)</label>
+            <input type="number" id="iPeso" placeholder="0" min="0" step="0.1">
+          </div>
+          <div class="fg">
+            <label>Dim. mayor (cm)</label>
+            <input type="number" id="iDim" placeholder="0" min="0" step="1">
+          </div>
+        </div>
+
+        <!-- Calculadora de precio -->
+        <div class="precio-calculado">
+          <div class="pc-row"><span>Precio base (ML/AliExpress)</span><span id="pcBase">$0</span></div>
+          <div class="pc-row"><span id="pcComLabel">+ Comisión (10%)</span><span id="pcCom">$0</span></div>
+          <div class="pc-row"><span>+ Envío</span><span id="pcEnvio">$0</span></div>
+          <div class="pc-row total"><span>PRECIO FINAL</span><span id="pcTotal">$0</span></div>
+        </div>
+
+        <button class="btn btn-success btn-lg" onclick="agregarAImportados()" style="width:100%;">
+          ✅ Agregar a la lista
+        </button>
+      </div>
+    </div>
+
+    <!-- Lista de productos a importar -->
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span class="panel-label" style="margin-bottom:0;">Lista para importar</span>
+        <button class="btn btn-secondary btn-sm" onclick="limpiarImportados()" style="font-size:11px;">Limpiar</button>
+      </div>
+      <div class="importados-lista" id="importadosLista">
+        <div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;background:var(--bg3);border-radius:8px;border:1px dashed var(--border);">
+          Aquí aparecerán los productos que agregues
+        </div>
+      </div>
+    </div>
+
+    <!-- Exportar -->
+    <div id="exportSection" style="display:none;">
+      <button class="btn btn-primary btn-lg" onclick="exportarAlPanel()" style="width:100%;margin-bottom:8px;">
+        ⬇ Exportar al panel admin
+      </button>
+      <button class="btn btn-gold" onclick="copiarCodigo()" style="width:100%;">
+        📋 Copiar código JS
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+/* ===== CONFIG ===== */
+// En producción apunta a tu Vercel. En local usa el proxy.
+var API_URL = '/api/ml';
+
+// Detectar si estamos en local (archivo:// o localhost)
+if(window.location.protocol === 'file:' || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'){
+  // Modo demo local — usamos datos simulados
+  API_URL = null;
+}
+
+/* ===== ESTADO ===== */
+var fuenteActual   = 'ml';
+var resultados     = [];
+var resultadosTodo = [];
+var seleccionado   = null;
+var importados     = [];
+var currentOffset  = 0;
+var currentTotal   = 0;
+var currentQ       = '';
+var LIMIT          = 20;
+var modalProd      = null;
+
+/* ===== CAMBIAR FUENTE ===== */
+function cambiarFuente(fuente){
+  fuenteActual = fuente;
+  document.querySelectorAll('.source-tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById('tab-'+fuente).classList.add('active');
+
+  var btn = document.getElementById('btnBuscar');
+  var input = document.getElementById('searchInput');
+  var chips = document.getElementById('searchChips');
+
+  if(fuente === 'ml'){
+    btn.className = 'btn btn-search-ml';
+    btn.textContent = '🔍 Buscar en ML';
+    input.placeholder = 'Buscá cualquier producto... Ej: taladro percutor, cable eléctrico';
+    chips.innerHTML = [
+      ['taladro percutor','Taladros'],['amoladora angular','Amoladoras'],['martillo carpintero','Martillos'],
+      ['cable eléctrico duplex','Cables'],['pintura látex','Pinturas'],['caño PVC','Caños PVC'],
+      ['candado seguridad','Candados'],['escalera aluminio','Escaleras']
+    ].map(function(c){ return '<span class="chip" onclick="buscarRapido(\''+c[0]+'\')">'+c[1]+'</span>'; }).join('');
+  } else {
+    btn.className = 'btn btn-search-ali';
+    btn.textContent = '🔍 Buscar en AliExpress';
+    input.placeholder = 'Buscá en inglés para mejores resultados... Ej: power drill, pvc pipe';
+    chips.innerHTML = [
+      ['power drill','Taladros'],['angle grinder','Amoladoras'],['hammer tool','Martillos'],
+      ['electrical cable','Cables'],['interior paint','Pinturas'],['pvc pipe','Caños PVC'],
+      ['padlock security','Candados'],['aluminum ladder','Escaleras']
+    ].map(function(c){ return '<span class="chip" onclick="buscarRapido(\''+c[0]+'\')">'+c[1]+'</span>'; }).join('');
+  }
+
+  limpiarResultados();
+}
+
+function limpiarResultados(){
+  document.getElementById('resultadosContainer').innerHTML = '<div class="estado-vacio"><div class="icon">🔍</div><h3>Listo para buscar</h3><p>Escribí el nombre de un producto y buscalo.</p></div>';
+  document.getElementById('paginacion').style.display = 'none';
+  document.getElementById('resCount').textContent = 'Buscá un producto para ver resultados';
+}
+
+/* ===== BUSCAR ===== */
+function buscar(){
+  var q = document.getElementById('searchInput').value.trim();
+  if(!q){ toast('⚠️ Escribí algo para buscar', 'error'); return; }
+  currentQ = q;
+  currentOffset = 0;
+  ejecutarBusqueda();
+}
+
+function buscarRapido(q){
+  document.getElementById('searchInput').value = q;
+  buscar();
+}
+
+document.getElementById('searchInput').addEventListener('keydown', function(e){
+  if(e.key === 'Enter') buscar();
+});
+
+async function ejecutarBusqueda(){
+  mostrarCargando();
+
+  if(fuenteActual === 'ml'){
+    await buscarML();
+  } else {
+    await buscarAliExpress();
+  }
+}
+
+async function buscarML(){
+  // Si no hay API (local), usar datos demo
+  if(!API_URL){
+    simularResultadosML(currentQ);
+    return;
+  }
+
+  try {
+    var url = API_URL + '?action=search&q=' + encodeURIComponent(currentQ) + '&limit=' + LIMIT + '&offset=' + currentOffset;
+    var res = await fetch(url);
+    if(!res.ok) throw new Error('Error ' + res.status);
+    var data = await res.json();
+
+    currentTotal = data.total || 0;
+    resultados = data.productos || [];
+    resultadosTodo = resultados.slice();
+    renderResultados();
+
+  } catch(err){
+    console.error(err);
+    // Fallback a demo si la API falla
+    simularResultadosML(currentQ);
+    toast('⚠️ API no disponible — mostrando datos de ejemplo', 'error');
+  }
+}
+
+async function buscarAliExpress(){
+  // AliExpress no tiene API pública gratuita sin registro
+  // Mostramos datos demo con el mensaje correcto
+  simularResultadosAli(currentQ);
+  toast('ℹ️ AliExpress requiere configuración adicional — mostrando ejemplos', '');
+}
+
+/* ===== DATOS DEMO (cuando no hay API) ===== */
+function simularResultadosML(q){
+  var precios = [4800, 18500, 87000, 62000, 38000, 9800, 28000, 5400, 48000, 3200, 6200, 14000, 24000, 5800, 43000, 8200, 2800, 4200, 3800, 18500];
+  var nombres = [
+    'Martillo Carpintero 500g Mango Fibra De Vidrio', 'Set Llaves Combinadas 12 Piezas Cromo Vanadio',
+    'Taladro Percutor 750W Con Maletín Y Set De Brocas', 'Amoladora Angular 115mm 820W Con Disco',
+    'Cable Duplex 2x2.5mm Norma Iram Rollo 100m', 'Candado Seguridad 60mm Arco Acero Templado',
+    'Canilla Monocomando Lavatorio Cromada', 'Rodillo Lana 23cm Con Mango Telescópico',
+    'Escalera Aluminio Tijera 6 Peldaños 150kg', 'Cinta Métrica 5m X 19mm Con Freno Y Clip',
+    'Destornillador Set 6 Piezas Punta Plana Y Phillips', 'Lámpara Led 12w E27 Luz Fría Pack X10',
+    'Látex Interior Blanco Mate 4l Sherwin Williams', 'Caño Pvc 110mm X 3m Desagüe',
+    'Atornillador Inalámbrico 12v Con Batería Y Cargador', 'Esmalte Sintético Blanco 1l',
+    'Tomacorriente Doble Con Toma Tierra Norma Iram', 'Llave De Paso Esfera 1/2 Cromada',
+    'Tornillos Drywall 3.5x25mm Caja X500', 'Cerradura Doble Paleta Para Puerta Exterior'
+  ];
+
+  var filtrados = nombres.filter(function(n){ return n.toLowerCase().includes(q.toLowerCase()); });
+  if(!filtrados.length) filtrados = nombres;
+
+  currentTotal = Math.min(filtrados.length * 3, 200);
+  resultados = filtrados.slice(0, LIMIT).map(function(n, i){
+    return {
+      id: 'MLA' + (1000000 + i),
+      titulo: n,
+      precio: precios[i % precios.length],
+      moneda: 'ARS',
+      imagen: null,
+      fuente: 'ml',
+      condicion: i % 3 === 0 ? 'used' : 'new',
+      vendidos: Math.floor(Math.random() * 500),
+      envio_gratis: i % 2 === 0,
+      link: 'https://www.mercadolibre.com.ar',
+      _demo: true,
+    };
+  });
+  resultadosTodo = resultados.slice();
+  renderResultados();
+}
+
+function simularResultadosAli(q){
+  var precios_usd = [12, 45, 85, 32, 28, 15, 67, 23, 110, 8, 19, 35, 52, 14, 78, 22, 9, 18, 11, 44];
+  var nombres = [
+    'Professional Carpenter Hammer 500g Fiberglass Handle', 'Combination Wrench Set 12pcs Chrome Vanadium',
+    'Electric Drill 750W with Case and Drill Bits', 'Angle Grinder 115mm 820W',
+    'Electrical Cable Duplex 2x2.5mm 100m Roll', 'Security Padlock 60mm Steel Shackle',
+    'Single Lever Faucet Chrome', 'Paint Roller 23cm with Extension Handle',
+    'Aluminum Ladder 6 Steps 150kg', 'Measuring Tape 5m x 19mm with Lock',
+    'Screwdriver Set 6pcs Flat and Phillips', 'LED Bulb 12W E27 Cold Light Pack x10',
+    'Interior White Latex Paint 4L', 'PVC Pipe 110mm x 3m Drainage',
+    'Cordless Screwdriver 12V with Battery', 'Synthetic Enamel White 1L',
+    'Double Power Outlet with Ground', 'Ball Valve 1/2 Chrome',
+    'Drywall Screws 3.5x25mm Box x500', 'Double Bolt Lock for Exterior Door'
+  ];
+
+  currentTotal = 120;
+  resultados = nombres.slice(0, LIMIT).map(function(n, i){
+    return {
+      id: 'ALI' + (1000000 + i),
+      titulo: n,
+      precio: precios_usd[i % precios_usd.length],
+      moneda: 'USD',
+      imagen: null,
+      fuente: 'ali',
+      condicion: 'new',
+      vendidos: Math.floor(Math.random() * 2000),
+      envio_gratis: i % 3 === 0,
+      link: 'https://www.aliexpress.com',
+      _demo: true,
+    };
+  });
+  resultadosTodo = resultados.slice();
+  renderResultados();
+}
+
+/* ===== RENDER RESULTADOS ===== */
+function mostrarCargando(){
+  document.getElementById('resultadosContainer').innerHTML =
+    '<div class="estado-vacio"><div class="spinner"></div><h3>Buscando productos...</h3><p>Consultando '+
+    (fuenteActual==='ml'?'MercadoLibre':'AliExpress')+'</p></div>';
+}
+
+function renderResultados(){
+  var cont = document.getElementById('resultadosContainer');
+  var titulo = fuenteActual === 'ml' ? 'Resultados en MercadoLibre' : 'Resultados en AliExpress';
+  var pagActual = Math.floor(currentOffset / LIMIT) + 1;
+  var pagTotal  = Math.ceil(currentTotal / LIMIT);
+
+  document.getElementById('resTitle').textContent = titulo + ' — "' + currentQ + '"';
+  document.getElementById('resCount').textContent = currentTotal.toLocaleString('es-AR') + ' productos encontrados · Página ' + pagActual + ' de ' + pagTotal;
+
+  if(!resultados.length){
+    cont.innerHTML = '<div class="estado-vacio"><div class="icon">😕</div><h3>Sin resultados</h3><p>Probá con otro término de búsqueda.</p></div>';
+    document.getElementById('paginacion').style.display = 'none';
+    return;
+  }
+
+  cont.innerHTML = '';
+  var grid = document.createElement('div');
+  grid.className = 'productos-grid';
+
+  resultados.forEach(function(p, i){
+    var yaImportado = importados.some(function(x){ return x.id === p.id; });
+    var card = document.createElement('div');
+    card.className = 'prod-card' + (seleccionado && seleccionado.id === p.id ? ' seleccionado' : '');
+    card.onclick = function(){ seleccionarProducto(p); };
+
+    var precioFmt = p.moneda === 'USD'
+      ? 'USD ' + p.precio.toLocaleString('en-US', {minimumFractionDigits:0})
+      : '$' + p.precio.toLocaleString('es-AR');
+
+    var imgHtml = p.imagen
+      ? '<img src="'+p.imagen+'" alt="" onerror="this.src=\'\';this.parentNode.innerHTML=\'📦\'">'
+      : '<span style="font-size:36px;">📦</span>';
+
+    card.innerHTML =
+      '<div class="prod-card-img">'+imgHtml+'</div>'+
+      '<div class="prod-card-body">'+
+        '<div class="prod-card-fuente fuente-'+p.fuente+'">'+(p.fuente==='ml'?'MercadoLibre':'AliExpress')+'</div>'+
+        '<div class="prod-card-nombre">'+p.titulo+'</div>'+
+        '<div class="prod-card-precio '+p.fuente+'">'+precioFmt+'</div>'+
+        '<div class="prod-card-meta">'+
+          (p.envio_gratis ? '<span class="meta-tag verde">Envío gratis</span>' : '')+
+          (p.vendidos ? '<span class="meta-tag">'+p.vendidos+' vendidos</span>' : '')+
+          (p.condicion === 'used' ? '<span class="meta-tag">Usado</span>' : '')+
+        '</div>'+
+      '</div>'+
+      '<button class="prod-card-add'+(yaImportado?' added':'')+'" title="'+(yaImportado?'Ya agregado':'Agregar')+'" '+
+        'onclick="event.stopPropagation();agregarDirecto('+i+')">'+(yaImportado?'✓':'＋')+'</button>';
+
+    grid.appendChild(card);
+  });
+
+  cont.appendChild(grid);
+
+  // Paginación
+  var pag = document.getElementById('paginacion');
+  if(currentTotal > LIMIT){
+    pag.style.display = 'flex';
+    document.getElementById('pagInfo').textContent = 'Página ' + pagActual + ' de ' + pagTotal;
+    document.getElementById('btnPrev').disabled = currentOffset === 0;
+    document.getElementById('btnNext').disabled = (currentOffset + LIMIT) >= currentTotal;
+  } else {
+    pag.style.display = 'none';
+  }
+}
+
+function paginar(dir){
+  currentOffset = Math.max(0, currentOffset + dir * LIMIT);
+  ejecutarBusqueda();
+  window.scrollTo(0, 0);
+}
+
+function reordenar(){
+  var orden = document.getElementById('ordenSelect').value;
+  var sorted = resultadosTodo.slice();
+  if(orden === 'precio_asc') sorted.sort(function(a,b){ return a.precio - b.precio; });
+  if(orden === 'precio_desc') sorted.sort(function(a,b){ return b.precio - a.precio; });
+  resultados = sorted;
+  renderResultados();
+}
+
+/* ===== SELECCIONAR PRODUCTO ===== */
+function seleccionarProducto(p){
+  seleccionado = p;
+
+  // Preview
+  var prev = document.getElementById('prodPreview');
+  var sinSel = document.getElementById('sinSeleccion');
+  prev.classList.add('visible');
+  sinSel.style.display = 'none';
+
+  var img = document.getElementById('ppImg');
+  if(p.imagen){ img.src = p.imagen; img.style.display = 'block'; }
+  else { img.style.display = 'none'; }
+
+  var fuenteEl = document.getElementById('ppFuente');
+  fuenteEl.textContent = p.fuente === 'ml' ? 'MercadoLibre Argentina' : 'AliExpress';
+  fuenteEl.className = 'pp-fuente fuente-' + p.fuente;
+
+  document.getElementById('ppNombre').textContent = p.titulo;
+
+  var precioFmt = p.moneda === 'USD'
+    ? 'USD ' + p.precio.toLocaleString('en-US')
+    : '$' + p.precio.toLocaleString('es-AR');
+  document.getElementById('ppPrecioOrig').textContent = precioFmt;
+
+  // Nombre sugerido — limpiar el título de ML
+  var nombreLimpio = p.titulo
+    .split(' ').map(function(w){ return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }).join(' ')
+    .substring(0, 60);
+  document.getElementById('iNombre').value = nombreLimpio;
+
+  // Detectar categoría
+  var cats = {
+    'taladro|drill|perforadora': 'Herramientas eléctricas',
+    'amoladora|grinder|sierra|caladora|atornillador': 'Herramientas eléctricas',
+    'martillo|llave|destornillador|alicate|nivel|cinta métrica': 'Herramientas',
+    'cable|tomacorriente|interruptor|lámpara|led|térmica': 'Electricidad',
+    'caño|canilla|teflón|llave de paso|flexible': 'Plomería',
+    'látex|pintura|esmalte|rodillo|pincel': 'Pintura',
+    'tornillo|tarugo|siliconado|disco de corte': 'Fijaciones',
+    'candado|cerradura': 'Seguridad',
+    'escalera|espátula|drywall': 'Construcción',
+  };
+  var catDetectada = '';
+  Object.keys(cats).forEach(function(regex){
+    if(new RegExp(regex, 'i').test(p.titulo)) catDetectada = cats[regex];
+  });
+  document.getElementById('iCat').value = catDetectada;
+
+  document.getElementById('formImportar').style.display = 'block';
+  calcPrecio();
+  renderResultados();
+}
+
+/* ===== CALCULAR PRECIO ===== */
+function calcPrecio(){
+  if(!seleccionado) return;
+
+  var precioBase = seleccionado.precio;
+
+  // Si es USD convertir a ARS (tipo de cambio estimado — actualizar según el día)
+  var TC = 1300; // Tipo de cambio ARS/USD estimado
+  if(seleccionado.moneda === 'USD') precioBase = precioBase * TC;
+
+  var com    = parseFloat(document.getElementById('iComision').value)||0;
+  var envio  = parseFloat(document.getElementById('iEnvio').value)||0;
+  var comVal = Math.round(precioBase * com / 100);
+  var total  = Math.round(precioBase + comVal + envio);
+
+  document.getElementById('pcBase').textContent   = '$' + Math.round(precioBase).toLocaleString('es-AR');
+  document.getElementById('pcComLabel').textContent = '+ Comisión (' + com + '%)';
+  document.getElementById('pcCom').textContent    = '+$' + comVal.toLocaleString('es-AR');
+  document.getElementById('pcEnvio').textContent  = '+$' + envio.toLocaleString('es-AR');
+  document.getElementById('pcTotal').textContent  = '$' + total.toLocaleString('es-AR');
+}
+
+/* ===== AGREGAR A LA LISTA ===== */
+function agregarAImportados(){
+  if(!seleccionado){ toast('⚠️ Seleccioná un producto primero', 'error'); return; }
+  var nombre = document.getElementById('iNombre').value.trim();
+  var cat    = document.getElementById('iCat').value;
+  if(!nombre){ toast('⚠️ Ingresá un nombre', 'error'); return; }
+  if(!cat){ toast('⚠️ Seleccioná una categoría', 'error'); return; }
+
+  var com   = parseFloat(document.getElementById('iComision').value)||0;
+  var envio = parseFloat(document.getElementById('iEnvio').value)||0;
+  var precioBase = seleccionado.precio;
+  if(seleccionado.moneda === 'USD') precioBase = precioBase * 1300;
+  var total = Math.round(precioBase * (1 + com/100) + envio);
+
+  var item = {
+    id:          seleccionado.id,
+    nombre,
+    desc:        seleccionado.titulo,
+    categoria:   cat,
+    precio:      Math.round(precioBase),
+    precioFinal: total,
+    comision:    com,
+    envio,
+    imagen:      seleccionado.imagen,
+    link:        seleccionado.link,
+    fuente:      seleccionado.fuente,
+    peso:        parseFloat(document.getElementById('iPeso').value)||0,
+    dim:         parseFloat(document.getElementById('iDim').value)||0,
+    stock:       1,
+    unidad:      'unidad',
+    tipoEnvio:   'auto',
+    id_prod:     'p' + Date.now(),
+  };
+
+  // Evitar duplicados
+  if(importados.some(function(x){ return x.id === item.id; })){
+    toast('⚠️ Este producto ya está en la lista', 'error'); return;
+  }
+
+  importados.push(item);
+  renderImportados();
+  toast('✅ "'+nombre.substring(0,30)+'..." agregado a la lista', 'success');
+  renderResultados();
+}
+
+function agregarDirecto(idx){
+  seleccionarProducto(resultados[idx]);
+  // Auto-agregar con valores por defecto
+  setTimeout(function(){
+    var cat = document.getElementById('iCat').value || 'Otros';
+    document.getElementById('iCat').value = cat;
+    agregarAImportados();
+  }, 100);
+}
+
+function renderImportados(){
+  var lista = document.getElementById('importadosLista');
+  var count = document.getElementById('importadosCount');
+  count.textContent = importados.length + ' producto' + (importados.length !== 1 ? 's' : '') + ' seleccionado' + (importados.length !== 1 ? 's' : '');
+
+  document.getElementById('exportSection').style.display = importados.length ? 'block' : 'none';
+
+  if(!importados.length){
+    lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--muted);font-size:13px;background:var(--bg3);border-radius:8px;border:1px dashed var(--border);">Aquí aparecerán los productos que agregues</div>';
+    return;
+  }
+
+  lista.innerHTML = importados.map(function(p, i){
+    return '<div class="importado-item">'+
+      (p.imagen ? '<img class="ii-img" src="'+p.imagen+'" onerror="this.src=\'\'">':'<div class="ii-img" style="display:flex;align-items:center;justify-content:center;font-size:18px;">📦</div>')+
+      '<div class="ii-info">'+
+        '<div class="ii-nombre">'+p.nombre+'</div>'+
+        '<div class="ii-precio">$'+p.precioFinal.toLocaleString('es-AR')+'</div>'+
+      '</div>'+
+      '<button class="ii-del" onclick="quitarImportado('+i+')">✕</button>'+
+    '</div>';
+  }).join('');
+}
+
+function quitarImportado(idx){
+  importados.splice(idx, 1);
+  renderImportados();
+}
+
+function limpiarImportados(){
+  if(!importados.length) return;
+  if(!confirm('¿Limpiar la lista de ' + importados.length + ' productos?')) return;
+  importados = [];
+  renderImportados();
+}
+
+/* ===== EXPORTAR AL PANEL ===== */
+function exportarAlPanel(){
+  if(!importados.length){ toast('⚠️ No hay productos en la lista', 'error'); return; }
+
+  // Guardar en localStorage para que el panel los levante
+  var existentes = [];
+  try { existentes = JSON.parse(localStorage.getItem('ferreteria_productos') || '[]'); } catch(e){}
+
+  var nuevos = importados.filter(function(imp){
+    return !existentes.some(function(ex){ return ex.id_prod === imp.id_prod; });
+  });
+
+  var productosFinales = importados.map(function(p){
+    return {
+      id:          p.id_prod,
+      nombre:      p.nombre,
+      desc:        p.desc.substring(0, 80),
+      categoria:   p.categoria,
+      precio:      p.precio,
+      stock:       1,
+      unidad:      p.unidad || 'unidad',
+      peso:        p.peso || 0,
+      dim:         p.dim || 0,
+      tipoEnvio:   'auto',
+      costoEnvio:  p.envio || 0,
+      costoFlete:  0,
+      imagen_url:  p.imagen || '',
+      fuente_ml:   p.link || '',
+    };
+  });
+
+  var combinados = existentes.concat(productosFinales);
+  localStorage.setItem('ferreteria_productos', JSON.stringify(combinados));
+
+  toast('✅ ' + productosFinales.length + ' productos exportados al panel admin', 'success');
+
+  setTimeout(function(){
+    if(confirm('Productos exportados. ¿Ir al panel admin ahora?')){
+      window.location.href = 'panel_admin.html';
+    }
+  }, 800);
+}
+
+function copiarCodigo(){
+  if(!importados.length){ toast('⚠️ No hay productos', 'error'); return; }
+  var codigo = 'var PRODS_IMPORTADOS = ' + JSON.stringify(importados.map(function(p){
+    return { id:p.id_prod, n:p.nombre, d:p.desc.substring(0,60), c:p.categoria, p:p.precio, s:1, u:'unidad' };
+  }), null, 2) + ';';
+  navigator.clipboard.writeText(codigo).then(function(){
+    toast('📋 Código copiado — pegalo en tu panel admin', 'success');
+  });
+}
+
+/* ===== MODAL DETALLE ===== */
+async function verDetalle(p){
+  modalProd = p;
+  document.getElementById('modalFuente').textContent = p.fuente === 'ml' ? '📦 MercadoLibre' : '🛒 AliExpress';
+  document.getElementById('modalNombre').textContent = p.titulo;
+
+  var precioFmt = p.moneda === 'USD'
+    ? 'USD ' + p.precio.toLocaleString('en-US')
+    : '$' + p.precio.toLocaleString('es-AR');
+  document.getElementById('modalPrecio').textContent = precioFmt;
+
+  var mainImg = document.getElementById('modalImgMain');
+  mainImg.innerHTML = p.imagen
+    ? '<img src="'+p.imagen+'" alt="">'
+    : '<span style="font-size:48px;">📦</span>';
+
+  document.getElementById('modalImgs').innerHTML = '';
+  document.getElementById('modalAtributos').innerHTML = '';
+  document.getElementById('modalDesc').textContent = 'Cargando detalles...';
+  document.getElementById('modalMeta').innerHTML =
+    (p.envio_gratis ? '<span class="meta-tag verde">Envío gratis</span>' : '') +
+    (p.vendidos ? '<span class="meta-tag">'+p.vendidos+' vendidos</span>' : '') +
+    (p.condicion === 'used' ? '<span class="meta-tag">Usado</span>' : '<span class="meta-tag verde">Nuevo</span>');
+
+  document.getElementById('modalOv').classList.add('on');
+
+  // Cargar detalle completo si tenemos API
+  if(API_URL && p.fuente === 'ml' && !p._demo){
+    try {
+      var res = await fetch(API_URL + '?action=detail&id=' + p.id);
+      var det = await res.json();
+
+      if(det.imagenes && det.imagenes.length){
+        var thumbs = det.imagenes.slice(0, 6).map(function(url, i){
+          return '<img class="modal-img-thumb'+(i===0?' active':'')+'" src="'+url+'" onclick="cambiarImgModal(\''+url+'\', this)">';
+        }).join('');
+        document.getElementById('modalImgs').innerHTML = thumbs;
+        mainImg.innerHTML = '<img src="'+det.imagenes[0]+'" alt="">';
+      }
+
+      if(det.atributos && det.atributos.length){
+        var attrs = det.atributos.map(function(a){
+          return '<div class="attr-item"><span class="attr-nombre">'+a.nombre+'</span><span class="attr-valor">'+(a.valor||'—')+'</span></div>';
+        }).join('');
+        document.getElementById('modalAtributos').innerHTML = '<div class="panel-label">Características</div><div class="attr-grid">'+attrs+'</div>';
+      }
+
+      document.getElementById('modalDesc').textContent = det.descripcion || 'Sin descripción disponible.';
+
+    } catch(e){
+      document.getElementById('modalDesc').textContent = 'No se pudo cargar el detalle completo.';
+    }
+  } else {
+    document.getElementById('modalDesc').textContent = p._demo ? 'Vista demo — conectá la API para ver el detalle completo.' : 'Sin descripción disponible.';
+  }
+}
+
+function cambiarImgModal(url, thumb){
+  document.getElementById('modalImgMain').innerHTML = '<img src="'+url+'" alt="">';
+  document.querySelectorAll('.modal-img-thumb').forEach(function(t){ t.classList.remove('active'); });
+  thumb.classList.add('active');
+}
+
+function toggleDesc(){
+  document.getElementById('modalDesc').classList.toggle('expanded');
+}
+
+function seleccionarDesdeModal(){
+  if(modalProd){ seleccionarProducto(modalProd); cerrarModal(); }
+}
+
+function cerrarModal(){
+  document.getElementById('modalOv').classList.remove('on');
+}
+document.getElementById('modalOv').addEventListener('click', function(e){
+  if(e.target === this) cerrarModal();
+});
+
+/* ===== TOAST ===== */
+function toast(msg, tipo){
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (tipo||'');
+  clearTimeout(t._t);
+  t._t = setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+/* ===== INIT ===== */
+renderImportados();
+</script>
+</body>
+</html>
